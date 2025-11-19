@@ -107,7 +107,7 @@ const PAPAYA_PRODUCTS = [
     about: "เสื้อยืดโอเวอร์ไซซ์สีฟ้าพาสเทล ไม่มีลาย เหมาะสำหรับสายมินิมอลที่เน้นสีสัน เนื้อผ้าทิ้งตัวสวย",
     price: 390,
     category: "shirt",
-    img: "https://images.unsplash.com/photo-1620799140408-ed5341cd2431?q=80&w=600&auto=format&fit=crop",
+    img: "https://www.dropbox.com/scl/fi/aa994smgjrm68rrfxd1v3/Basic-Tee-Sand.png?rlkey=fx6feplfsxt2krzefrtuao2c9&e=1&st=qez42917&dl=1",
     featured: true
 },
 
@@ -451,7 +451,7 @@ const PAPAYA_PRODUCTS = [
     about: "ผ้า Bandana ลาย Paisley สีดำ/ขาว ใช้ผูกผม โพกศีรษะ หรือพันคอ ได้ลุคฮิปฮอป",
     price: 180,
     category: "accessory",
-    img: "https://images.unsplash.com/photo-1630950358333-4f6352998839?q=80&w=600&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1624222247344-550fb60583dc?q=80&w=600&auto=format&fit=crop",
     featured: false
 },
 {
@@ -484,7 +484,7 @@ const PAPAYA_PRODUCTS = [
     featured: false
 },
 
-// ----- JEWELRY (เพิ่มรูป Placeholder ตามธีม) -----
+// ----- JEWELRY  -----
 {
     id: 52,
     name: "Ring Set - Minimal Silver (3pcs)",

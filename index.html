@@ -17,6 +17,13 @@
       <span class="shop">SHOP</span>
     </a>
 
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-toggle-label">
+      <span></span>
+      <span></span>
+      <span></span>
+    </label>
+
     <nav class="nav-links">
       <a href="index.html">Home</a>
       <a href="orders.html">ประวัติการสั่งซื้อ</a>
@@ -36,14 +43,12 @@
 
   <section class="mb-5 rounded-4 overflow-hidden shadow-lg">
     <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
-      
       <div class="carousel-indicators">
         <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
         <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
         <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
         <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
       </div>
-
       <div class="carousel-inner">
         <div class="carousel-item active" style="height: 450px;">
           <img src="https://picsum.photos/id/445/1200/500" class="d-block w-100 h-100 object-fit-cover" style="filter: brightness(0.8);">
@@ -74,14 +79,12 @@
           </div>
         </div>
       </div>
-
       <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
         <span class="carousel-control-prev-icon"></span>
       </button>
       <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
         <span class="carousel-control-next-icon"></span>
       </button>
-
     </div>
   </section>
 
@@ -93,14 +96,12 @@
       <button class="cat-chip" data-cat="hat">หมวก</button>
       <button class="cat-chip" data-cat="shoes">รองเท้า</button>
       <button class="cat-chip" data-cat="accessory">แอ็กเซสซอรี่</button>
-
       <select id="filterProducts" class="dark-select">
         <option value="popular">สินค้ายอดนิยม</option>
         <option value="price_low">ราคาต่ำ → สูง</option>
         <option value="price_high">ราคาสูง → ต่ำ</option>
         <option value="new">สินค้าใหม่</option>
       </select>
-
       <select id="priceFilter" class="dark-select">
         <option value="all">ทุกช่วงราคา</option>
         <option value="0-400">0 - 400</option>

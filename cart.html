@@ -15,6 +15,12 @@
       <span class="pog">Pog & Pog</span>
       <span class="shop">SHOP</span>
     </a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-toggle-label">
+      <span></span>
+      <span></span>
+      <span></span>
+    </label>
     <nav class="nav-links">
       <a href="index.html">Home</a>
       <a href="orders.html">ประวัติการสั่งซื้อ</a>
@@ -30,12 +36,10 @@
 
 <main class="container main-pad">
   <h2>ตะกร้าสินค้า</h2>
-
   <div class="cart-layout">
     <section class="panel">
       <ul id="cartList" class="cart-list"></ul>
     </section>
-
     <aside class="panel">
       <h3>สรุปคำสั่งซื้อ</h3>
       <div class="summary-row">
@@ -51,18 +55,14 @@
         <strong id="grandTotal">0 ฿</strong>
       </div>
       <div style="margin-top: 1rem;">
-        <a href="checkout.html" class="btn" style="width: 100%; justify-content: center;">
-          ไปชำระเงิน
-        </a>
+        <a href="checkout.html" class="btn" style="width: 100%; justify-content: center;">ไปชำระเงิน</a>
       </div>
     </aside>
   </div>
 </main>
 
 <footer class="site-foot">
-  <div class="container">
-    © <span id="year"></span> PAPAYA Pog & Pog SHOP
-  </div>
+  <div class="container">© <span id="year"></span> PAPAYA Pog & Pog SHOP</div>
 </footer>
 
 <div id="globalModal" class="modal-overlay">
@@ -74,7 +74,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="product_data.js"></script>
 <script src="script.js"></script>
 </body>

@@ -6,10 +6,11 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  font-family: "Prompt", system-ui, -apple-system, sans-serif; /* ใช้ฟอนต์ Prompt */
+  font-family: "Prompt", system-ui, -apple-system, sans-serif;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background-color: #fffdfa; /* สีพื้นหลังโทนขาวครีม */
@@ -17,7 +18,7 @@ html, body {
 }
 
 a {
-  text-decoration: none; /* เอาเส้นใต้ลิงก์ออก */
+  text-decoration: none;
   color: inherit;
 }
 
@@ -28,7 +29,7 @@ button {
 }
 
 .hidden {
-  display: none !important; /* คลาสสำหรับซ่อน element */
+  display: none !important;
 }
 
 /* =========================================================
@@ -37,13 +38,13 @@ button {
 ========================================================= */
 .container {
   width: 100%;
-  max-width: 1150px; /* ความกว้างสูงสุดของเนื้อหา */
-  margin: 0 auto;    /* จัดกึ่งกลางหน้าจอ */
-  padding: 0 1.5rem; /* เว้นขอบซ้ายขวา */
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
 .main-pad {
-  padding-top: 6rem; /* เว้นด้านบนกันชน Header */
+  padding-top: 6rem;
   padding-bottom: 4rem;
 }
 
@@ -54,7 +55,7 @@ button {
   color: #222;
 }
 
-.empty { /* สไตล์ข้อความเมื่อไม่มีสินค้า */
+.empty {
   text-align: center;
   font-size: 0.9rem;
   color: #999;
@@ -65,13 +66,13 @@ button {
    3. ส่วนหัวและเมนู (HEADER & NAVBAR)
 ========================================================= */
 .site-header {
-  position: sticky; /* ให้เมนูติดอยู่ด้านบนตลอดเวลา */
+  position: sticky;
   top: 0;
-  background-color: rgba(255, 255, 255, 0.95); /* พื้นหลังโปร่งแสง */
-  backdrop-filter: blur(10px); /* เบลอฉากหลัง */
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid #eee4bc;
   box-shadow: 0 5px 12px rgba(0, 0, 0, 0.06);
-  z-index: 1000; /* ให้อยู่ชั้นบนสุด */
+  z-index: 1000;
 }
 
 .navbar {
@@ -163,7 +164,7 @@ button {
 .btn,
 .ghost {
   padding: 0.6rem 1.25rem;
-  border-radius: 999px; /* ทำปุ่มให้มน */
+  border-radius: 999px;
   cursor: pointer;
   transition: 0.25s;
   font-size: 0.9rem;
@@ -198,7 +199,7 @@ button {
 }
 
 .full {
-  width: 100%; /* ปุ่มกว้างเต็มพื้นที่ */
+  width: 100%;
 }
 
 /* =========================================================
@@ -275,7 +276,7 @@ button {
 }
 
 .product-card:hover {
-  transform: translateY(-4px); /* ลอยขึ้นเล็กน้อย */
+  transform: translateY(-4px);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
 }
 
@@ -316,8 +317,6 @@ button {
 /* =========================================================
    6. หน้าต่างป๊อปอัพ (MODALS)
 ========================================================= */
-
-/* ฉากหลังมืดๆ */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -546,6 +545,53 @@ button {
   border: 1px solid #f2dfb0;
 }
 
+/* Header ของการ์ด Login */
+.auth-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.auth-header-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* --- ส่วนตกแต่งปุ่มเลือก Login / Register (เพิ่มใหม่) --- */
+.auth-tabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.auth-tab {
+  cursor: pointer;
+  font-size: 1rem;
+  color: #0d6efd; /* สีฟ้า */
+  background: transparent;
+  padding: 0.6rem 1.5rem;
+  border-radius: 50px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.auth-tab.active {
+  background-color: #0d6efd;
+  color: white;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.auth-tab:hover:not(.active) {
+  background-color: #e7f1ff;
+}
+
+/* ฟอร์มและปุ่ม Social */
 .auth-input {
   width: 100%;
   padding: 0.8rem;
@@ -564,6 +610,13 @@ button {
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  margin-top: 1rem;
+}
+
+.auth-divider {
+  height: 1px;
+  background: #eee;
+  margin: 1.5rem 0;
 }
 
 .social-btn {
@@ -576,6 +629,11 @@ button {
   display: flex;
   justify-content: center;
   gap: 0.5rem;
+}
+
+.social-google {
+  color: #333;
+  background: #fff;
 }
 
 .social-fb {
@@ -662,13 +720,12 @@ button {
 
 /* =========================================================
    12. RESPONSIVE & MOBILE MENU (สำหรับมือถือ)
-   ส่วนนี้จะทำงานเฉพาะเมื่อหน้าจอเล็กกว่า 768px
 ========================================================= */
 @media (max-width: 768px) {
 
-  /* --- 12.1 ปรับขนาดแบนเนอร์ --- */
+  /* --- ปรับขนาดแบนเนอร์ --- */
   .carousel-item {
-    height: 280px !important; /* ลดความสูงแบนเนอร์ */
+    height: 280px !important;
   }
 
   .carousel-caption {
@@ -690,18 +747,17 @@ button {
     overflow: hidden;
   }
 
-  /* --- 12.2 ปรับระยะขอบ --- */
+  /* --- ปรับ Layout อื่นๆ --- */
   .main-pad {
     padding-top: 5rem;
   }
 
   .category-bar {
     flex-wrap: nowrap;
-    overflow-x: auto; /* เลื่อนแนวนอนได้ */
+    overflow-x: auto;
     justify-content: flex-start;
   }
 
-  /* --- 12.3 ปรับ Layout Modal และตะกร้า --- */
   .custom-modal {
     grid-template-columns: 1fr;
   }
@@ -714,27 +770,22 @@ button {
     grid-template-columns: 1fr;
   }
 
-  /* --- 12.4 ระบบ Hamburger Menu (ไม่ใช้ JS) --- */
+  /* --- Hamburger Menu Logic --- */
   .nav-toggle-label {
-    display: flex; /* แสดงปุ่ม 3 ขีด */
+    display: flex;
   }
 
-  /* ตัวเมนูที่จะเลื่อนลงมา */
   .nav-links {
     position: absolute;
-    top: 100%; /* ต่อท้าย Header ลงมา */
+    top: 100%;
     left: 0;
     width: 100%;
     background-color: #fff;
     border-bottom: 1px solid #eee;
     box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-    
-    /* เทคนิคการซ่อน (เพื่อทำ Animation) */
     max-height: 0;
     overflow: hidden;
     opacity: 0;
-    
-    /* จัดเรียงแนวตั้ง */
     flex-direction: column;
     align-items: center;
     gap: 0;
@@ -750,14 +801,11 @@ button {
     border-bottom: 1px solid #f9f9f9;
   }
 
-  /* --- Logic การเปิดเมนู --- */
-  /* เมื่อ Checkbox ถูกติ๊ก -> เมนูจะขยายลงมา */
   .nav-toggle:checked ~ .nav-links {
     max-height: 500px;
     opacity: 1;
   }
 
-  /* เปลี่ยนปุ่ม 3 ขีด เป็นกากบาท */
   .nav-toggle:checked ~ .nav-toggle-label span:nth-child(1) {
     transform: translateY(8px) rotate(45deg);
   }

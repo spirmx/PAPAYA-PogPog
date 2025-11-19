@@ -107,7 +107,7 @@ const PAPAYA_PRODUCTS = [
     about: "เสื้อยืดโอเวอร์ไซซ์สีฟ้าพาสเทล ไม่มีลาย เหมาะสำหรับสายมินิมอลที่เน้นสีสัน เนื้อผ้าทิ้งตัวสวย",
     price: 390,
     category: "shirt",
-    img: "https://images.unsplash.com/photo-1620799140408-ed5341cd2431?q=80&w=600&auto=format&fit=crop",
+    img: "https://www.dropbox.com/scl/fi/aa994smgjrm68rrfxd1v3/Basic-Tee-Sand.png?rlkey=fx6feplfsxt2krzefrtuao2c9&e=1&st=qez42917&dl=1",
     featured: true
 },
 

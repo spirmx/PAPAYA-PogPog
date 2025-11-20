@@ -1,6 +1,5 @@
 /* =========================================================
    1. การตั้งค่าพื้นฐาน (RESET & BASE)
-   ส่วนนี้เป็นการรีเซ็ตค่าเริ่มต้นของบราวเซอร์
 ========================================================= */
 *,
 *::before,
@@ -13,8 +12,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background-color: #fffdfa; /* สีพื้นหลังโทนขาวครีม */
-  color: #222; /* สีตัวหนังสือหลัก */
+  background-color: #fffdfa;
+  color: #222;
 }
 
 a {
@@ -34,7 +33,6 @@ button {
 
 /* =========================================================
    2. โครงสร้างหน้าเว็บ (LAYOUT & CONTAINER)
-   ส่วนกำหนดขอบเขตเนื้อหาและการเว้นระยะ
 ========================================================= */
 .container {
   width: 100%;
@@ -83,7 +81,6 @@ button {
   position: relative;
 }
 
-/* --- โลโก้แบรนด์ --- */
 .brand-logo {
   display: flex;
   flex-direction: column;
@@ -108,7 +105,6 @@ button {
   font-weight: 600;
 }
 
-/* --- ลิงก์เมนู (Desktop) --- */
 .nav-links {
   display: flex;
   gap: 1.1rem;
@@ -133,12 +129,10 @@ button {
   color: #777;
 }
 
-/* --- Checkbox Hack สำหรับ Hamburger Menu (ซ่อนไว้) --- */
 .nav-toggle {
   display: none;
 }
 
-/* --- ปุ่ม 3 ขีด (ซ่อนใน Desktop) --- */
 .nav-toggle-label {
   display: none;
   cursor: pointer;
@@ -174,7 +168,6 @@ button {
   gap: 0.25rem;
 }
 
-/* ปุ่มหลัก (สีส้มเหลือง) */
 .btn {
   background: linear-gradient(135deg, #ffd949, #f5b800);
   color: #222;
@@ -187,7 +180,6 @@ button {
   transform: translateY(-1px);
 }
 
-/* ปุ่มรอง (พื้นขาวมีขอบ) */
 .ghost {
   background-color: #ffffff;
   border: 1px solid #ddd;
@@ -205,8 +197,6 @@ button {
 /* =========================================================
    5. ส่วนประกอบหน้าแรก (HOME COMPONENTS)
 ========================================================= */
-
-/* --- แถบหมวดหมู่สินค้า --- */
 .category-bar-wrap {
   display: flex;
   justify-content: center;
@@ -222,6 +212,7 @@ button {
   border: 1px solid #f2df98;
   box-shadow: 0 5px 18px rgba(0, 0, 0, 0.07);
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .cat-chip {
@@ -253,7 +244,6 @@ button {
   font-size: 0.8rem;
 }
 
-/* --- ตารางสินค้า (Grid) --- */
 .products-wrap {
   margin-top: 2rem;
 }
@@ -264,7 +254,6 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
-/* --- การ์ดสินค้า --- */
 .product-card {
   background-color: #fff;
   border-radius: 1.1rem;
@@ -336,7 +325,6 @@ button {
   pointer-events: all;
 }
 
-/* กล่องรายละเอียดสินค้า */
 .custom-modal {
   background-color: #fff;
   width: 95%;
@@ -352,7 +340,6 @@ button {
   position: relative;
 }
 
-/* กล่องแจ้งเตือนเล็กๆ */
 .modal-box {
   background-color: #ffffff;
   padding: 25px 30px;
@@ -368,7 +355,6 @@ button {
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* รายละเอียดข้างใน Modal */
 .modal-left img {
   width: 100%;
   height: 100%;
@@ -494,7 +480,6 @@ button {
   cursor: pointer;
 }
 
-/* ฟอร์มชำระเงิน */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -545,7 +530,6 @@ button {
   border: 1px solid #f2dfb0;
 }
 
-/* Header ของการ์ด Login */
 .auth-header {
   text-align: center;
   margin-bottom: 1rem;
@@ -561,7 +545,6 @@ button {
   color: #333;
 }
 
-/* --- ส่วนตกแต่งปุ่มเลือก Login / Register (เพิ่มใหม่) --- */
 .auth-tabs {
   display: flex;
   justify-content: center;
@@ -573,7 +556,7 @@ button {
 .auth-tab {
   cursor: pointer;
   font-size: 1rem;
-  color: #0d6efd; /* สีฟ้า */
+  color: #0d6efd;
   background: transparent;
   padding: 0.6rem 1.5rem;
   border-radius: 50px;
@@ -591,7 +574,6 @@ button {
   background-color: #e7f1ff;
 }
 
-/* ฟอร์มและปุ่ม Social */
 .auth-input {
   width: 100%;
   padding: 0.8rem;
@@ -688,6 +670,8 @@ button {
 .pagination {
   margin-top: 2rem;
   gap: 0.3rem;
+  list-style: none;
+  padding: 0;
 }
 
 .pagination .page-link {
@@ -696,6 +680,8 @@ button {
   border: 1px solid #eee2b6;
   padding: 0.6rem 1rem;
   background-color: #fff;
+  text-decoration: none;
+  display: block;
 }
 
 .pagination .page-link:hover {
@@ -716,14 +702,13 @@ button {
   color: #ccc;
   background-color: #fafafa;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* =========================================================
-   12. RESPONSIVE & MOBILE MENU (สำหรับมือถือ)
+   12. RESPONSIVE & SEARCH BAR
 ========================================================= */
 @media (max-width: 768px) {
-
-  /* --- ปรับขนาดแบนเนอร์ --- */
   .carousel-item {
     height: 280px !important;
   }
@@ -747,7 +732,6 @@ button {
     overflow: hidden;
   }
 
-  /* --- ปรับ Layout อื่นๆ --- */
   .main-pad {
     padding-top: 5rem;
   }
@@ -770,7 +754,7 @@ button {
     grid-template-columns: 1fr;
   }
 
-  /* --- Hamburger Menu Logic --- */
+  /* Hamburger Menu */
   .nav-toggle-label {
     display: flex;
   }
@@ -817,28 +801,46 @@ button {
   .nav-toggle:checked ~ .nav-toggle-label span:nth-child(3) {
     transform: translateY(-8px) rotate(-45deg);
   }
-}
-/* [เพิ่มใหม่] ช่องค้นหาในมือถือ */
-  .search-input {
-    width: 100%;
-    order: -1; /* ย้ายไปอยู่บนสุดในมือถือ */
-    margin-bottom: 0.5rem;
+
+  /* [แก้ไขใหม่] จัด Search Bar ในมือถือ */
+  .navbar {
+    flex-wrap: wrap; /* อนุญาตให้ปัดตกบรรทัดได้ */
   }
 
-/* [เพิ่มใหม่] ตกแต่งช่องค้นหา */
+  .search-wrapper {
+    order: 3;        /* ย้ายไปอยู่ล่างสุด (ใต้ Logo และ Menu) */
+    width: 100%;     /* กว้างเต็มจอ */
+    max-width: 100%;
+    margin: 0.8rem 0 0 0; /* เว้นระยะด้านบน */
+  }
+  
+  .search-input {
+    padding: 0.6rem 1rem; /* เพิ่มขนาดให้จิ้มง่ายขึ้นในมือถือ */
+  }
+}
+
+/* [แก้ไขใหม่] CSS สำหรับช่องค้นหาบน Navbar */
+.search-wrapper {
+  flex-grow: 1;          /* ให้ขยายพื้นที่เต็มที่ว่าง */
+  margin: 0 1.5rem;      /* เว้นระยะซ้ายขวา */
+  max-width: 400px;      /* ไม่ให้กว้างเกินไปในจอคอม */
+  display: flex;
+}
+
 .search-input {
+  width: 100%;
   padding: 0.5rem 1rem;
-  border-radius: 999px;
-  border: 1px solid #ddd;
-  background-color: #fff;
+  border-radius: 99px;
+  border: 1px solid #e2d6ab;  /* สีขอบให้เข้ากับธีม */
+  background-color: #fffdf7;  /* สีพื้นหลังครีมอ่อนๆ */
   color: #222;
   font-size: 0.9rem;
   outline: none;
   transition: all 0.2s;
-  min-width: 200px; 
 }
 
 .search-input:focus {
-  border-color: #f5b800; 
-  box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.1);
+  border-color: #f5b800;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.15);
 }

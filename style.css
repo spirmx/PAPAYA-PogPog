@@ -818,3 +818,27 @@ button {
     transform: translateY(-8px) rotate(-45deg);
   }
 }
+/* [เพิ่มใหม่] ช่องค้นหาในมือถือ */
+  .search-input {
+    width: 100%;
+    order: -1; /* ย้ายไปอยู่บนสุดในมือถือ */
+    margin-bottom: 0.5rem;
+  }
+
+/* [เพิ่มใหม่] ตกแต่งช่องค้นหา */
+.search-input {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: #222;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 200px; 
+}
+
+.search-input:focus {
+  border-color: #f5b800; 
+  box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.1);
+}

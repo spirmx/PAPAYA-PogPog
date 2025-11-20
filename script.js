@@ -1,4 +1,4 @@
-// script.js – PAPAYA Pog & Pog SHOP (Fixed for Unified Modal)
+// script.js – PAPAYA Pog & Pog SHOP
 
 // ===== LocalStorage Keys =====
 const KEY_USERS    = 'ps_users';
@@ -33,14 +33,13 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString('th-TH');
 }
 
-// ===== Global Modal Helper (ใช้ ID: globalModal, modalTitle, modalMessage, modalOK) =====
+// ===== Global Modal Helper =====
 function showModal(title, message, callback) {
   const modal = $('#globalModal');
   const titleEl = $('#modalTitle');
   const msgEl = $('#modalMessage');
   const okBtn = $('#modalOK');
 
-  // ตรวจสอบ Global Modal (ถ้าไม่มีจะใช้ alert ธรรมดา)
   if (!modal || !titleEl || !msgEl || !okBtn) {
     alert(message); 
     if (typeof callback === 'function') callback();
@@ -52,16 +51,14 @@ function showModal(title, message, callback) {
 
   modal.classList.add('open');
 
-  // รีเซ็ต onclick เพื่อให้ callback ทำงาน
   okBtn.onclick = () => {
     modal.classList.remove('open');
     if (typeof callback === 'function') callback();
   };
 }
 
-// ===== Seed Products (แก้ให้บังคับอัปเดตข้อมูลใหม่เสมอ) =====
+// ===== Seed Products =====
 (function seedProductsOnce() {
-  // ลบเงื่อนไขเช็คของเก่าทิ้ง เพื่อให้โหลดข้อมูลล่าสุดจากไฟล์ product_data.js เสมอ
   if (typeof PAPAYA_PRODUCTS !== 'undefined') {
     setLS(KEY_PRODUCTS, PAPAYA_PRODUCTS);
   } else {
@@ -73,7 +70,7 @@ function getProducts() {
   return getLS(KEY_PRODUCTS, []);
 }
 
-// ===== Auth (Login/Register/Logout/Session functions remain the same) =====
+// ===== Auth Functions =====
 function registerUser(username, email, password) {
   const users = getLS(KEY_USERS, []);
   if (users.some(u => u.username === username || u.email === email)) {
@@ -114,7 +111,7 @@ function getSession() {
   return getLS(KEY_SESSION, null);
 }
 
-// ===== Cart Functions (remain the same) =====
+// ===== Cart Functions =====
 function getCart() {
   return getLS(KEY_CART, []);
 }
@@ -150,7 +147,7 @@ function addToCart(product, size, qty) {
   saveCart(cart);
 }
 
-// ===== Orders Functions (remain the same) =====
+// ===== Orders Functions =====
 function getOrders() {
   return getLS(KEY_ORDERS, []);
 }
@@ -159,7 +156,7 @@ function saveOrders(orders) {
   setLS(KEY_ORDERS, orders);
 }
 
-// ===== Navbar (remains the same) =====
+// ===== Navbar =====
 function initNavbar() {
   const sess = getSession();
   const navLogin  = $('#navLogin');
@@ -186,40 +183,57 @@ function initNavbar() {
   }
 }
 
-// ===== HOME PAGE (แก้ไขใหม่ เพิ่ม Pagination) =====
+// ===== HOME PAGE (Search + Pagination) =====
 let currentProduct = null;
 
 function initHomePage() {
   const products = getProducts();
   const grid = $('#productGrid');
-  const paginationEl = $('#pagination-controls'); // Element สำหรับปุ่มเปลี่ยนหน้า
+  const paginationEl = $('#pagination-controls'); 
 
+  // Elements เดิม
   const catButtons = $$('.cat-chip');
   const filterSelect = $('#filterProducts');
   const priceSelect  = $('#priceFilter');
+  
+  // [1] ดึง Element ช่องค้นหา
+  const searchInput = $('#searchInput'); 
 
-  // State: เพิ่ม currentPage และ itemsPerPage
+  // State: รวมข้อมูลทั้งการกรอง, การเรียง, การค้นหา และการแบ่งหน้า
   const state = {
     category: 'all',
     sort: 'popular',
     priceRange: 'all',
     currentPage: 1,
-    itemsPerPage: 12
+    itemsPerPage: 12,
+    searchQuery: '' // [2] ตัวแปรเก็บคำที่ค้นหา
   };
 
-  // ฟังก์ชันกรองและเรียงลำดับ (เหมือนเดิม)
+  // ฟังก์ชันกรองและเรียงลำดับ
   function applyFilters() {
     let list = [...products];
 
+    // [3] กรองจากคำค้นหา (ชื่อสินค้า หรือ รายละเอียด)
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase().trim();
+      list = list.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        (p.about && p.about.toLowerCase().includes(q))
+      );
+    }
+
+    // กรองตามหมวดหมู่
     if (state.category !== 'all') {
       list = list.filter(p => p.category === state.category);
     }
 
+    // กรองตามราคา
     if (state.priceRange !== 'all') {
       const [min, max] = state.priceRange.split('-').map(Number);
       list = list.filter(p => p.price >= min && p.price <= max);
     }
 
+    // เรียงลำดับ
     switch (state.sort) {
       case 'price_low':
         list.sort((a, b) => a.price - b.price);
@@ -239,10 +253,11 @@ function initHomePage() {
 
   // ฟังก์ชันสร้างปุ่ม Pagination
   function renderPagination(totalItems) {
+    if (!paginationEl) return;
+
     paginationEl.innerHTML = '';
     const totalPages = Math.ceil(totalItems / state.itemsPerPage);
 
-    // ถ้าไม่มีหน้า หรือมีแค่หน้าเดียว ไม่ต้องแสดงปุ่ม
     if (totalPages <= 1) return;
 
     // ปุ่ม Previous
@@ -254,13 +269,12 @@ function initHomePage() {
       if (state.currentPage > 1) {
         state.currentPage--;
         renderProducts();
-        // เลื่อนหน้าจอขึ้นไปด้านบนตารางสินค้า
         document.querySelector('.products-wrap').scrollIntoView({ behavior: 'smooth' });
       }
     });
     paginationEl.appendChild(prevLi);
 
-    // ปุ่มตัวเลข 1, 2, 3...
+    // ปุ่มตัวเลข
     for (let i = 1; i <= totalPages; i++) {
       const li = document.createElement('li');
       li.className = `page-item ${i === state.currentPage ? 'active' : ''}`;
@@ -289,27 +303,22 @@ function initHomePage() {
     paginationEl.appendChild(nextLi);
   }
 
-  // ฟังก์ชัน Render สินค้า (แก้ไขให้ตัดเฉพาะหน้าปัจจุบันมาแสดง)
+  // ฟังก์ชัน Render สินค้า
   function renderProducts() {
     const allFiltered = applyFilters();
     
-    // คำนวณ Index เริ่มต้นและสิ้นสุด
     const startIndex = (state.currentPage - 1) * state.itemsPerPage;
     const endIndex = startIndex + state.itemsPerPage;
-    
-    // ตัดอาเรย์เอาเฉพาะส่วนที่จะแสดงในหน้านี้
     const listToShow = allFiltered.slice(startIndex, endIndex);
 
     grid.innerHTML = '';
     
-    // กรณีไม่พบสินค้า
     if (!allFiltered.length) {
-      grid.innerHTML = '<p class="empty">ไม่พบสินค้าในหมวดนี้</p>';
-      paginationEl.innerHTML = ''; // ลบปุ่มเปลี่ยนหน้าออก
+      grid.innerHTML = '<p class="empty" style="grid-column: 1/-1; padding: 2rem;">ไม่พบสินค้าที่คุณค้นหา</p>';
+      if(paginationEl) paginationEl.innerHTML = '';
       return;
     }
 
-    // วนลูปสร้างการ์ดสินค้า
     listToShow.forEach(p => {
       const card = document.createElement('article');
       card.className = 'product-card';
@@ -350,17 +359,16 @@ function initHomePage() {
       grid.appendChild(card);
     });
 
-    // เรียกฟังก์ชันสร้างปุ่ม Pagination โดยส่งจำนวนสินค้าทั้งหมดหลังกรองไป
     renderPagination(allFiltered.length);
   }
 
-  // Event Listeners สำหรับ Filter ต่างๆ (ต้อง Reset หน้าไปที่ 1 เสมอเมื่อเปลี่ยนเงื่อนไข)
+  // Event Listeners
   catButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       catButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.category = btn.dataset.cat;
-      state.currentPage = 1; // Reset page
+      state.currentPage = 1; 
       renderProducts();
     });
   });
@@ -368,7 +376,7 @@ function initHomePage() {
   if (filterSelect) {
     filterSelect.addEventListener('change', function () {
       state.sort = this.value;
-      state.currentPage = 1; // Reset page
+      state.currentPage = 1; 
       renderProducts();
     });
   }
@@ -376,15 +384,24 @@ function initHomePage() {
   if (priceSelect) {
     priceSelect.addEventListener('change', function () {
       state.priceRange = this.value;
-      state.currentPage = 1; // Reset page
+      state.currentPage = 1; 
       renderProducts();
+    });
+  }
+
+  // [4] Event Listener: ช่องค้นหา
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value; // เก็บค่าที่พิมพ์ลง state
+      state.currentPage = 1; // รีเซ็ตกลับหน้า 1 เสมอเมื่อค้นหาใหม่
+      renderProducts(); // สั่งวาดหน้าจอใหม่ทันที
     });
   }
 
   renderProducts();
 }
 
-// ===== PRODUCT MODAL (remains the same, uses specific product modal) =====
+// ===== PRODUCT MODAL =====
 function openProductModal(productId, mode) {
   const modal = $('#productModal');
   const overlay = $('#modalOverlay');
@@ -464,7 +481,7 @@ function initModalEvents() {
   }
 }
 
-// ===== CART PAGE (remains the same) =====
+// ===== CART PAGE =====
 function initCartPage() {
   const listEl = $('#cartList');
   const subEl  = $('#subTotal');
@@ -542,7 +559,7 @@ function initCartPage() {
   renderCart();
 }
 
-// ===== LOGIN REQUIREMENT (remains the same, uses showModal) =====
+// ===== LOGIN REQUIREMENT =====
 function requireLoginOrRedirect() {
   const sess = getSession();
   if (!sess) {
@@ -559,7 +576,7 @@ function requireLoginOrRedirect() {
   return true;
 }
 
-// ===== CHECKOUT PAGE (remains the same, uses showModal) =====
+// ===== CHECKOUT PAGE =====
 function initCheckoutPage() {
   if (!requireLoginOrRedirect()) return;
 
@@ -637,7 +654,7 @@ function initCheckoutPage() {
   renderCart();
 }
 
-// ===== ORDERS PAGE (remains the same) =====
+// ===== ORDERS PAGE =====
 function initOrdersPage() {
   if (!requireLoginOrRedirect()) return;
   const sess = getSession();
@@ -670,7 +687,7 @@ function initOrdersPage() {
   });
 }
 
-// ===== LOGIN PAGE (Updated Social Login) =====
+// ===== LOGIN PAGE =====
 function initLoginPage() {
   const loginForm = $('#loginForm');
   const registerForm = $('#registerForm');
@@ -713,7 +730,7 @@ function initLoginPage() {
     });
   }
 
-  // ======== Social Login (Updated to use Global Modal) ========
+  // Social Login
   $$('.social-btn').forEach(btn => {
     btn.addEventListener('click', function () {
       const mockUser = {
@@ -730,7 +747,7 @@ function initLoginPage() {
     });
   });
 
-  // Tab login / register (remains the same)
+  // Tab switch
   const tabLogin = $('#tabLogin');
   const tabRegister = $('#tabRegister');
 
@@ -751,7 +768,7 @@ function initLoginPage() {
   }
 }
 
-// ===== BOOTSTRAP (remains the same) =====
+// ===== BOOTSTRAP =====
 document.addEventListener('DOMContentLoaded', function () {
   initNavbar();
   initModalEvents();

@@ -1,39 +1,136 @@
-// script.js – PAPAYA Pog & Pog SHOP
-
-// ===== LocalStorage Keys =====
-const KEY_USERS    = 'ps_users';
-const KEY_SESSION  = 'ps_session';
+const KEY_USERS = 'ps_users';
+const KEY_SESSION = 'ps_session';
 const KEY_PRODUCTS = 'ps_products';
-const KEY_CART     = 'ps_cart';
-const KEY_ORDERS   = 'ps_orders';
+const KEY_CART = 'ps_cart';
+const KEY_ORDERS = 'ps_orders';
+const KEY_PROFILE = 'ps_profile';
+const KEY_RECENTS = 'ps_recent_searches';
 
-// ===== Helpers =====
-const $  = (sel, root = document) => root.querySelector(sel);
+const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 function getLS(key, def) {
   try {
-    const v = localStorage.getItem(key);
-    if (!v) return def;
-    return JSON.parse(v);
-  } catch (e) {
+    const value = localStorage.getItem(key);
+    if (!value) return def;
+    return JSON.parse(value);
+  } catch (error) {
     return def;
   }
 }
 
-function setLS(key, val) {
-  localStorage.setItem(key, JSON.stringify(val));
+function setLS(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
 }
 
 function toBaht(num) {
-  return new Intl.NumberFormat('th-TH').format(num) + ' ฿';
+  return `${new Intl.NumberFormat('th-TH').format(Number(num) || 0)} บาท`;
 }
 
 function formatDate(iso) {
-  return new Date(iso).toLocaleString('th-TH');
+  const value = new Date(iso);
+  return value.toLocaleString('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
 }
 
-// ===== Global Modal Helper =====
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getCategoryLabel(category) {
+  const labels = {
+    shirt: 'Shirts',
+    pants: 'Pants',
+    hat: 'Hats',
+    shoes: 'Shoes',
+    accessory: 'Accessories'
+  };
+  return labels[category] || 'Products';
+}
+
+function getProducts() {
+  return getLS(KEY_PRODUCTS, []);
+}
+
+function getCart() {
+  return getLS(KEY_CART, []);
+}
+
+function getOrders() {
+  return getLS(KEY_ORDERS, []);
+}
+
+function getSession() {
+  return getLS(KEY_SESSION, null);
+}
+
+function getProfile() {
+  return getLS(KEY_PROFILE, {});
+}
+
+function getRecentSearches() {
+  return getLS(KEY_RECENTS, []);
+}
+
+function saveProfile(profile) {
+  setLS(KEY_PROFILE, profile);
+}
+
+function saveCart(cart) {
+  setLS(KEY_CART, cart);
+  updateCartCount();
+}
+
+function saveOrders(orders) {
+  setLS(KEY_ORDERS, orders);
+}
+
+function rememberSearch(query) {
+  const clean = String(query || '').trim();
+  if (!clean) return;
+  const next = [clean, ...getRecentSearches().filter((item) => item !== clean)].slice(0, 5);
+  setLS(KEY_RECENTS, next);
+}
+
+function getCartMetrics() {
+  const cart = getCart();
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+  const savings = Math.round(subtotal * 0.08);
+  return { itemCount, subtotal, savings };
+}
+
+function getInventoryStats(products) {
+  const prices = products.map((item) => item.price);
+  return {
+    total: products.length,
+    featured: products.filter((item) => item.featured).length,
+    min: prices.length ? Math.min(...prices) : 0,
+    max: prices.length ? Math.max(...prices) : 0
+  };
+}
+
+function getOrderStatusMeta(status) {
+  const value = normalizeText(status);
+  if (value.includes('ready') || value.includes('fulfilled')) {
+    return { label: 'Ready to ship', tone: 'success' };
+  }
+  if (value.includes('processing') || value.includes('confirmed')) {
+    return { label: 'Processing', tone: 'gold' };
+  }
+  return { label: status || 'Paid', tone: 'gold' };
+}
+
+function generateDeliveryEstimate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 3);
+  return date.toLocaleDateString('th-TH', {
+    dateStyle: 'medium'
+  });
+}
+
 function showModal(title, message, callback) {
   const modal = $('#globalModal');
   const titleEl = $('#modalTitle');
@@ -41,14 +138,13 @@ function showModal(title, message, callback) {
   const okBtn = $('#modalOK');
 
   if (!modal || !titleEl || !msgEl || !okBtn) {
-    alert(message); 
+    alert(message);
     if (typeof callback === 'function') callback();
     return;
   }
 
-  titleEl.textContent = title || 'แจ้งเตือน';
+  titleEl.textContent = title || 'Notification';
   msgEl.textContent = message || '';
-
   modal.classList.add('open');
 
   okBtn.onclick = () => {
@@ -57,7 +153,6 @@ function showModal(title, message, callback) {
   };
 }
 
-// ===== Seed Products =====
 (function seedProductsOnce() {
   if (typeof PAPAYA_PRODUCTS !== 'undefined') {
     setLS(KEY_PRODUCTS, PAPAYA_PRODUCTS);
@@ -66,39 +161,59 @@ function showModal(title, message, callback) {
   }
 })();
 
-function getProducts() {
-  return getLS(KEY_PRODUCTS, []);
-}
-
-// ===== Auth Functions =====
 function registerUser(username, email, password) {
   const users = getLS(KEY_USERS, []);
-  if (users.some(u => u.username === username || u.email === email)) {
-    showModal('สมัครไม่สำเร็จ', 'มีผู้ใช้งานหรืออีเมลนี้อยู่แล้ว');
+  const normalizedUsername = normalizeText(username);
+  const normalizedEmail = normalizeText(email);
+
+  if (users.some((user) => normalizeText(user.username) === normalizedUsername || normalizeText(user.email) === normalizedEmail)) {
+    showModal('Register failed', 'Username or email is already in use');
     return false;
   }
+
   const user = {
     username,
     email,
     password,
     createdAt: new Date().toISOString()
   };
+
   users.push(user);
   setLS(KEY_USERS, users);
   setLS(KEY_SESSION, { username, email });
+  saveProfile({
+    ...getProfile(),
+    username,
+    email
+  });
   return true;
 }
 
 function loginUser(identifier, password) {
   const users = getLS(KEY_USERS, []);
-  const user = users.find(
-    u => (u.username === identifier || u.email === identifier) && u.password === password
-  );
-  if (!user) {
-    showModal('เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้ / อีเมล หรือรหัสผ่านไม่ถูกต้อง');
+  const match = users.find((user) => {
+    const sameIdentifier =
+      normalizeText(user.username) === normalizeText(identifier) ||
+      normalizeText(user.email) === normalizeText(identifier);
+    return sameIdentifier && user.password === password;
+  });
+
+  if (!match) {
+    showModal('Login failed', 'Email, username, or password is incorrect');
     return false;
   }
-  setLS(KEY_SESSION, { username: user.username, email: user.email });
+
+  setLS(KEY_SESSION, {
+    username: match.username,
+    email: match.email
+  });
+
+  saveProfile({
+    ...getProfile(),
+    username: match.username,
+    email: match.email
+  });
+
   return true;
 }
 
@@ -107,30 +222,16 @@ function logoutUser() {
   location.href = 'index.html';
 }
 
-function getSession() {
-  return getLS(KEY_SESSION, null);
-}
-
-// ===== Cart Functions =====
-function getCart() {
-  return getLS(KEY_CART, []);
-}
-
-function saveCart(cart) {
-  setLS(KEY_CART, cart);
-  updateCartCount();
-}
-
 function updateCartCount() {
-  const cart = getCart();
-  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const metrics = getCartMetrics();
   const el = $('#cartCount');
-  if (el) el.textContent = String(count);
+  if (el) el.textContent = String(metrics.itemCount);
 }
 
 function addToCart(product, size, qty) {
-  let cart = getCart();
-  const existing = cart.find(i => i.id === product.id && i.size === size);
+  const cart = getCart();
+  const existing = cart.find((item) => item.id === product.id && item.size === size);
+
   if (existing) {
     existing.qty += qty;
   } else {
@@ -140,100 +241,163 @@ function addToCart(product, size, qty) {
       name: product.name,
       price: product.price,
       img: product.img,
+      category: product.category,
+      featured: product.featured,
       size,
       qty
     });
   }
+
   saveCart(cart);
 }
 
-// ===== Orders Functions =====
-function getOrders() {
-  return getLS(KEY_ORDERS, []);
-}
-
-function saveOrders(orders) {
-  setLS(KEY_ORDERS, orders);
-}
-
-// ===== Navbar =====
 function initNavbar() {
-  const sess = getSession();
-  const navLogin  = $('#navLogin');
+  const session = getSession();
+  const navLogin = $('#navLogin');
   const navLogout = $('#navLogout');
-  const navUser   = $('#navUserName');
+  const navUser = $('#navUserName');
 
   updateCartCount();
 
-  if (sess) {
-    if (navLogin)  navLogin.classList.add('hidden');
+  if (session) {
+    if (navLogin) navLogin.classList.add('hidden');
     if (navLogout) navLogout.classList.remove('hidden');
-    if (navUser)   navUser.textContent = sess.username || (sess.email || 'บัญชี');
+    if (navUser) navUser.textContent = session.username || session.email || 'Member';
   } else {
-    if (navLogin)  navLogin.classList.remove('hidden');
+    if (navLogin) navLogin.classList.remove('hidden');
     if (navLogout) navLogout.classList.add('hidden');
-    if (navUser)   navUser.textContent = 'ผู้เยี่ยมชม';
+    if (navUser) navUser.textContent = 'Guest';
   }
 
   if (navLogout) {
-    navLogout.addEventListener('click', function (e) {
-      e.preventDefault();
+    navLogout.addEventListener('click', (event) => {
+      event.preventDefault();
       logoutUser();
     });
   }
 }
 
-// ===== HOME PAGE (Search + Pagination) =====
 let currentProduct = null;
+
+function buildProductCard(product, options = {}) {
+  const article = document.createElement('article');
+  article.className = 'product-card';
+  article.dataset.id = String(product.id);
+
+  const badge = product.featured ? '<span class="product-badge">Featured</span>' : `<span class="product-badge subtle-badge">${getCategoryLabel(product.category)}</span>`;
+  const metaLine = options.metaLine || `#${product.category}`;
+  const actionPrimary = options.primaryLabel || 'Buy Now';
+  const actionSecondary = options.secondaryLabel || 'Add to Cart';
+
+  article.innerHTML = `
+    <div class="product-thumb" style="background-image:url('${product.img}')">
+      ${badge}
+    </div>
+    <div class="product-body">
+      <div class="product-meta">${metaLine}</div>
+      <h3 class="product-name">${product.name}</h3>
+      <div class="product-price">${toBaht(product.price)}</div>
+      <div class="product-actions">
+        <button class="btn btn-buy" data-id="${product.id}">${actionPrimary}</button>
+        <button class="ghost btn-add" data-id="${product.id}">${actionSecondary}</button>
+      </div>
+    </div>
+  `;
+
+  const thumb = $('.product-thumb', article);
+  const name = $('.product-name', article);
+  const buyBtn = $('.btn-buy', article);
+  const addBtn = $('.btn-add', article);
+
+  const openDetail = (mode) => openProductModal(product.id, mode);
+
+  thumb.addEventListener('click', () => openDetail('detail'));
+  name.addEventListener('click', () => openDetail('detail'));
+  buyBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openDetail('buy');
+  });
+  addBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openDetail('cart');
+  });
+
+  return article;
+}
+
+function renderRecentSearches(container, onSelect) {
+  if (!container) return;
+  const items = getRecentSearches();
+  container.innerHTML = '';
+
+  if (!items.length) {
+    container.innerHTML = '<span class="results-hint">Recent searches will appear here</span>';
+    return;
+  }
+
+  items.forEach((item) => {
+    const button = document.createElement('button');
+    button.className = 'search-chip';
+    button.type = 'button';
+    button.textContent = item;
+    button.addEventListener('click', () => onSelect(item));
+    container.appendChild(button);
+  });
+}
 
 function initHomePage() {
   const products = getProducts();
   const grid = $('#productGrid');
-  const paginationEl = $('#pagination-controls'); 
-
-  // Elements เดิม
+  const curatedGrid = $('#curatedGrid');
+  const paginationEl = $('#pagination-controls');
+  const resultsMeta = $('#resultsMeta');
+  const resultsSummary = $('#resultsSummary');
+  const recentSearchesEl = $('#recentSearches');
+  const inventoryCount = $('#inventoryCount');
+  const featuredCount = $('#featuredCount');
+  const priceBand = $('#priceBand');
   const catButtons = $$('.cat-chip');
   const filterSelect = $('#filterProducts');
-  const priceSelect  = $('#priceFilter');
-  
-  // [1] ดึง Element ช่องค้นหา
-  const searchInput = $('#searchInput'); 
+  const priceSelect = $('#priceFilter');
+  const searchInput = $('#searchInput');
 
-  // State: รวมข้อมูลทั้งการกรอง, การเรียง, การค้นหา และการแบ่งหน้า
   const state = {
     category: 'all',
     sort: 'popular',
     priceRange: 'all',
     currentPage: 1,
     itemsPerPage: 12,
-    searchQuery: '' // [2] ตัวแปรเก็บคำที่ค้นหา
+    searchQuery: ''
   };
 
-  // ฟังก์ชันกรองและเรียงลำดับ
+  function renderInventoryDashboard() {
+    const stats = getInventoryStats(products);
+    if (inventoryCount) inventoryCount.textContent = String(stats.total);
+    if (featuredCount) featuredCount.textContent = String(stats.featured);
+    if (priceBand) priceBand.textContent = `${toBaht(stats.min)} - ${toBaht(stats.max)}`;
+  }
+
   function applyFilters() {
     let list = [...products];
 
-    // [3] กรองจากคำค้นหา (ชื่อสินค้า หรือ รายละเอียด)
     if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase().trim();
-      list = list.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        (p.about && p.about.toLowerCase().includes(q))
+      const query = normalizeText(state.searchQuery);
+      list = list.filter((product) =>
+        normalizeText(product.name).includes(query) ||
+        normalizeText(product.about).includes(query) ||
+        normalizeText(product.category).includes(query)
       );
     }
 
-    // กรองตามหมวดหมู่
     if (state.category !== 'all') {
-      list = list.filter(p => p.category === state.category);
+      list = list.filter((product) => product.category === state.category);
     }
 
-    // กรองตามราคา
     if (state.priceRange !== 'all') {
       const [min, max] = state.priceRange.split('-').map(Number);
-      list = list.filter(p => p.price >= min && p.price <= max);
+      list = list.filter((product) => product.price >= min && product.price <= max);
     }
 
-    // เรียงลำดับ
     switch (state.sort) {
       case 'price_low':
         list.sort((a, b) => a.price - b.price);
@@ -245,208 +409,203 @@ function initHomePage() {
         list.sort((a, b) => b.id - a.id);
         break;
       default:
-        list.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        list.sort((a, b) => Number(b.featured) - Number(a.featured) || b.id - a.id);
     }
 
     return list;
   }
 
-  // ฟังก์ชันสร้างปุ่ม Pagination
   function renderPagination(totalItems) {
     if (!paginationEl) return;
 
     paginationEl.innerHTML = '';
     const totalPages = Math.ceil(totalItems / state.itemsPerPage);
-
     if (totalPages <= 1) return;
 
-    // ปุ่ม Previous
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${state.currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`;
-    prevLi.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (state.currentPage > 1) {
-        state.currentPage--;
-        renderProducts();
-        document.querySelector('.products-wrap').scrollIntoView({ behavior: 'smooth' });
-      }
-    });
-    paginationEl.appendChild(prevLi);
-
-    // ปุ่มตัวเลข
-    for (let i = 1; i <= totalPages; i++) {
+    const makePageItem = (label, targetPage, disabled = false, active = false) => {
       const li = document.createElement('li');
-      li.className = `page-item ${i === state.currentPage ? 'active' : ''}`;
-      li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-      li.addEventListener('click', (e) => {
-        e.preventDefault();
-        state.currentPage = i;
+      li.className = `page-item ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}`.trim();
+      li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+      li.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (disabled || targetPage === state.currentPage) return;
+        state.currentPage = targetPage;
         renderProducts();
-        document.querySelector('.products-wrap').scrollIntoView({ behavior: 'smooth' });
+        $('.products-wrap')?.scrollIntoView({ behavior: 'smooth' });
       });
-      paginationEl.appendChild(li);
-    }
+      return li;
+    };
 
-    // ปุ่ม Next
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${state.currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`;
-    nextLi.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (state.currentPage < totalPages) {
-        state.currentPage++;
-        renderProducts();
-        document.querySelector('.products-wrap').scrollIntoView({ behavior: 'smooth' });
-      }
-    });
-    paginationEl.appendChild(nextLi);
+    paginationEl.appendChild(makePageItem('Prev', Math.max(1, state.currentPage - 1), state.currentPage === 1));
+    for (let page = 1; page <= totalPages; page += 1) {
+      paginationEl.appendChild(makePageItem(String(page), page, false, page === state.currentPage));
+    }
+    paginationEl.appendChild(makePageItem('Next', Math.min(totalPages, state.currentPage + 1), state.currentPage === totalPages));
   }
 
-  // ฟังก์ชัน Render สินค้า
+  function updateResultsText(totalItems, visibleItems) {
+    if (resultsMeta) {
+      resultsMeta.textContent = `${visibleItems} of ${totalItems} products visible`;
+    }
+
+    if (resultsSummary) {
+      const summary = [];
+      summary.push(state.category === 'all' ? 'All categories' : getCategoryLabel(state.category));
+      summary.push(state.priceRange === 'all' ? 'All prices' : `Range ${state.priceRange}`);
+      if (state.searchQuery) summary.push(`Keyword "${state.searchQuery}"`);
+      resultsSummary.textContent = summary.join(' • ');
+    }
+  }
+
+  function renderCuratedProducts() {
+    if (!curatedGrid) return;
+    curatedGrid.innerHTML = '';
+    const curated = [...products]
+      .sort((a, b) => Number(b.featured) - Number(a.featured) || a.price - b.price)
+      .slice(0, 4);
+
+    curated.forEach((product) => {
+      curatedGrid.appendChild(buildProductCard(product, {
+        metaLine: `${product.featured ? 'Editor pick' : 'Curated'} • ${getCategoryLabel(product.category)}`
+      }));
+    });
+  }
+
   function renderProducts() {
-    const allFiltered = applyFilters();
-    
+    if (!grid) return;
+    const filtered = applyFilters();
     const startIndex = (state.currentPage - 1) * state.itemsPerPage;
     const endIndex = startIndex + state.itemsPerPage;
-    const listToShow = allFiltered.slice(startIndex, endIndex);
+    const visible = filtered.slice(startIndex, endIndex);
 
     grid.innerHTML = '';
-    
-    if (!allFiltered.length) {
-      grid.innerHTML = '<p class="empty" style="grid-column: 1/-1; padding: 2rem;">ไม่พบสินค้าที่คุณค้นหา</p>';
-      if(paginationEl) paginationEl.innerHTML = '';
+
+    if (!filtered.length) {
+      grid.innerHTML = '<p class="empty" style="grid-column:1 / -1;">No products matched this setup. Try another keyword or price range.</p>';
+      if (paginationEl) paginationEl.innerHTML = '';
+      updateResultsText(0, 0);
       return;
     }
 
-    listToShow.forEach(p => {
-      const card = document.createElement('article');
-      card.className = 'product-card';
-      card.dataset.id = String(p.id);
-      card.innerHTML = `
-        <div class="product-thumb" style="background-image:url('${p.img}')"></div>
-        <div class="product-body">
-          <div class="product-meta">#${p.category}</div>
-          <h3 class="product-name">${p.name}</h3>
-          <div class="product-price">${toBaht(p.price)}</div>
-          <div class="product-actions">
-            <button class="btn btn-buy" data-id="${p.id}">ซื้อเลย</button>
-            <button class="ghost btn-add" data-id="${p.id}">เพิ่มลงตะกร้า</button>
-          </div>
-        </div>
-      `;
-
-      const thumb = card.querySelector('.product-thumb');
-      const name  = card.querySelector('.product-name');
-      const buyBtn = card.querySelector('.btn-buy');
-      const addBtn = card.querySelector('.btn-add');
-
-      function openDetail(mode) {
-        openProductModal(p.id, mode);
-      }
-
-      thumb.addEventListener('click', () => openDetail('detail'));
-      name.addEventListener('click', () => openDetail('detail'));
-      buyBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDetail('buy');
-      });
-      addBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDetail('cart');
-      });
-
-      grid.appendChild(card);
+    visible.forEach((product, index) => {
+      const label = index < 3 && state.sort === 'popular' ? 'Top pick' : `${getCategoryLabel(product.category)} • ${product.featured ? 'Featured' : 'In stock'}`;
+      grid.appendChild(buildProductCard(product, { metaLine: label }));
     });
 
-    renderPagination(allFiltered.length);
+    updateResultsText(filtered.length, visible.length);
+    renderPagination(filtered.length);
   }
 
-  // Event Listeners
-  catButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      catButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.category = btn.dataset.cat;
-      state.currentPage = 1; 
+  function syncSearch(value) {
+    state.searchQuery = String(value || '').trim();
+    state.currentPage = 1;
+    renderProducts();
+    renderRecentSearches(recentSearchesEl, (query) => {
+      if (searchInput) searchInput.value = query;
+      syncSearch(query);
+    });
+  }
+
+  catButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      catButtons.forEach((chip) => chip.classList.remove('active'));
+      button.classList.add('active');
+      state.category = button.dataset.cat;
+      state.currentPage = 1;
       renderProducts();
     });
   });
 
   if (filterSelect) {
-    filterSelect.addEventListener('change', function () {
+    filterSelect.addEventListener('change', function onChange() {
       state.sort = this.value;
-      state.currentPage = 1; 
+      state.currentPage = 1;
       renderProducts();
     });
   }
 
   if (priceSelect) {
-    priceSelect.addEventListener('change', function () {
+    priceSelect.addEventListener('change', function onChange() {
       state.priceRange = this.value;
-      state.currentPage = 1; 
+      state.currentPage = 1;
       renderProducts();
     });
   }
 
-  // [4] Event Listener: ช่องค้นหา
   if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      state.searchQuery = e.target.value; // เก็บค่าที่พิมพ์ลง state
-      state.currentPage = 1; // รีเซ็ตกลับหน้า 1 เสมอเมื่อค้นหาใหม่
-      renderProducts(); // สั่งวาดหน้าจอใหม่ทันที
+    searchInput.addEventListener('input', (event) => {
+      syncSearch(event.target.value);
+    });
+
+    searchInput.addEventListener('change', (event) => {
+      rememberSearch(event.target.value);
+      renderRecentSearches(recentSearchesEl, (query) => {
+        searchInput.value = query;
+        syncSearch(query);
+      });
     });
   }
 
+  renderInventoryDashboard();
+  renderCuratedProducts();
+  renderRecentSearches(recentSearchesEl, (query) => {
+    if (searchInput) searchInput.value = query;
+    syncSearch(query);
+  });
   renderProducts();
 }
 
-// ===== PRODUCT MODAL =====
-function openProductModal(productId, mode) {
-  const modal = $('#productModal');
+function openProductModal(productId) {
   const overlay = $('#modalOverlay');
-  const nameEl = $('#modalName');
-  const priceEl = $('#modalPrice');
-  const imgEl = $('#modalImg');
-  const sizeSel = $('#modalSize');
-  const qtyInput = $('#modalQty');
-  const aboutEl = $('#modalAbout'); 
-
-  const product = getProducts().find(p => p.id === productId);
+  const modal = $('#productModal');
+  const product = getProducts().find((item) => item.id === productId);
   if (!product) return;
 
   currentProduct = product;
 
+  const nameEl = $('#modalName');
+  const priceEl = $('#modalPrice');
+  const imgEl = $('#modalImg');
+  const sizeEl = $('#modalSize');
+  const qtyEl = $('#modalQty');
+  const aboutEl = $('#modalAbout');
+
   if (nameEl) nameEl.textContent = product.name;
-  if (aboutEl) aboutEl.textContent = product.about || "ไม่มีรายละเอียดสินค้า";
   if (priceEl) priceEl.textContent = toBaht(product.price);
-  if (imgEl) imgEl.src = product.img;
+  if (imgEl) {
+    imgEl.src = product.img;
+    imgEl.alt = product.name;
+  }
+  if (aboutEl) aboutEl.textContent = product.about || 'No product description available';
+  if (sizeEl) sizeEl.value = 'M';
+  if (qtyEl) qtyEl.value = '1';
 
-  if (sizeSel) sizeSel.value = 'M';
-  if (qtyInput) qtyInput.value = '1';
-
-  if (modal) modal.classList.add('open');
   if (overlay) overlay.classList.add('open');
+  if (modal) modal.classList.add('open');
 }
 
 function closeProductModal() {
-  const modal = $('#productModal');
-  const overlay = $('#modalOverlay');
-  if (modal) modal.classList.remove('open');
-  if (overlay) overlay.classList.remove('open');
+  $('#modalOverlay')?.classList.remove('open');
+  $('#productModal')?.classList.remove('open');
 }
 
 function initModalEvents() {
   const overlay = $('#modalOverlay');
   const closeBtn = $('#modalClose');
-  const addBtn   = $('#modalAddCart');
-  const buyBtn   = $('#modalBuyNow');
-  const sizeSel  = $('#modalSize');
+  const addBtn = $('#modalAddCart');
+  const buyBtn = $('#modalBuyNow');
+  const sizeSel = $('#modalSize');
   const qtyInput = $('#modalQty');
 
+  const getSelection = () => {
+    const size = sizeSel ? sizeSel.value : 'M';
+    const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value || '1', 10)) : 1;
+    return { size, qty };
+  };
+
   if (overlay) {
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeProductModal();
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) closeProductModal();
     });
   }
 
@@ -454,26 +613,20 @@ function initModalEvents() {
     closeBtn.addEventListener('click', closeProductModal);
   }
 
-  function getSizeQty() {
-    const size = sizeSel ? sizeSel.value : 'M';
-    const qty  = qtyInput ? Math.max(1, parseInt(qtyInput.value || '1', 10)) : 1;
-    return { size, qty };
-  }
-
   if (addBtn) {
-    addBtn.addEventListener('click', function () {
+    addBtn.addEventListener('click', () => {
       if (!currentProduct) return;
-      const { size, qty } = getSizeQty();
+      const { size, qty } = getSelection();
       addToCart(currentProduct, size, qty);
       closeProductModal();
-      showModal('เพิ่มลงตะกร้าแล้ว', `${currentProduct.name} ถูกเพิ่มลงตะกร้าเรียบร้อย`);
+      showModal('Added to cart', `${currentProduct.name} was added to your cart`);
     });
   }
 
   if (buyBtn) {
-    buyBtn.addEventListener('click', function () {
+    buyBtn.addEventListener('click', () => {
       if (!currentProduct) return;
-      const { size, qty } = getSizeQty();
+      const { size, qty } = getSelection();
       addToCart(currentProduct, size, qty);
       closeProductModal();
       location.href = 'checkout.html';
@@ -481,28 +634,33 @@ function initModalEvents() {
   }
 }
 
-// ===== CART PAGE =====
 function initCartPage() {
   const listEl = $('#cartList');
-  const subEl  = $('#subTotal');
-  const totEl  = $('#grandTotal');
+  const subEl = $('#subTotal');
+  const totEl = $('#grandTotal');
+  const itemCountEl = $('#cartItemCount');
+  const savingsEl = $('#cartSavings');
 
-  function calcSummary() {
-    const cart = getCart();
-    const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    if (subEl) subEl.textContent = toBaht(subtotal);
-    if (totEl) totEl.textContent = toBaht(subtotal);
+  function updateSummary() {
+    const metrics = getCartMetrics();
+    if (subEl) subEl.textContent = toBaht(metrics.subtotal);
+    if (totEl) totEl.textContent = toBaht(metrics.subtotal);
+    if (itemCountEl) itemCountEl.textContent = String(metrics.itemCount);
+    if (savingsEl) savingsEl.textContent = toBaht(metrics.savings);
   }
 
   function renderCart() {
     const cart = getCart();
+    if (!listEl) return;
     listEl.innerHTML = '';
+
     if (!cart.length) {
-      listEl.innerHTML = '<li class="empty">ยังไม่มีสินค้าในตะกร้า</li>';
-      calcSummary();
+      listEl.innerHTML = '<li class="empty">Your cart is empty. Add a few standout pieces and come back here.</li>';
+      updateSummary();
       return;
     }
-    cart.forEach(item => {
+
+    cart.forEach((item) => {
       const li = document.createElement('li');
       li.className = 'cart-item';
       li.innerHTML = `
@@ -511,87 +669,90 @@ function initCartPage() {
           <div class="cart-name">${item.name}</div>
           <div class="cart-price">${toBaht(item.price)}</div>
           <div class="cart-qty-row">
-            <span class="cart-size">ไซต์: ${item.size}</span>
-            <button class="qty-btn" data-act="dec">-</button>
+            <span class="cart-size">Size: ${item.size}</span>
+            <button class="qty-btn" data-act="dec" type="button">-</button>
             <span class="qty">${item.qty}</span>
-            <button class="qty-btn" data-act="inc">+</button>
+            <button class="qty-btn" data-act="inc" type="button">+</button>
           </div>
         </div>
-        <button class="cart-remove">&times;</button>
+        <button class="cart-remove" type="button" aria-label="Remove item">&times;</button>
       `;
 
-      const [decBtn, incBtn] = li.querySelectorAll('.qty-btn');
-      const rmBtn = li.querySelector('.cart-remove');
+      const [decBtn, incBtn] = $$('.qty-btn', li);
+      const rmBtn = $('.cart-remove', li);
 
-      decBtn.addEventListener('click', function () {
-        let cart = getCart();
-        const target = cart.find(i => i.id === item.id && i.size === item.size);
+      decBtn?.addEventListener('click', () => {
+        let cartState = getCart();
+        const target = cartState.find((entry) => entry.id === item.id && entry.size === item.size);
         if (!target) return;
         target.qty -= 1;
         if (target.qty <= 0) {
-          cart = cart.filter(i => !(i.id === item.id && i.size === item.size));
+          cartState = cartState.filter((entry) => !(entry.id === item.id && entry.size === item.size));
         }
-        saveCart(cart);
+        saveCart(cartState);
         renderCart();
       });
 
-      incBtn.addEventListener('click', function () {
-        let cart = getCart();
-        const target = cart.find(i => i.id === item.id && i.size === item.size);
+      incBtn?.addEventListener('click', () => {
+        const cartState = getCart();
+        const target = cartState.find((entry) => entry.id === item.id && entry.size === item.size);
         if (!target) return;
         target.qty += 1;
-        saveCart(cart);
+        saveCart(cartState);
         renderCart();
       });
 
-      rmBtn.addEventListener('click', function () {
-        let cart = getCart().filter(i => !(i.id === item.id && i.size === item.size));
-        saveCart(cart);
+      rmBtn?.addEventListener('click', () => {
+        const cartState = getCart().filter((entry) => !(entry.id === item.id && entry.size === item.size));
+        saveCart(cartState);
         renderCart();
       });
 
       listEl.appendChild(li);
     });
 
-    calcSummary();
+    updateSummary();
   }
 
   renderCart();
 }
 
-// ===== LOGIN REQUIREMENT =====
 function requireLoginOrRedirect() {
-  const sess = getSession();
-  if (!sess) {
-    const params = new URLSearchParams();
-    params.set('redirect', location.pathname.replace(/^\//, '') || 'index.html');
-    const target = 'login.html?' + params.toString();
+  const session = getSession();
+  if (session) return true;
 
-    showModal('จำเป็นต้องเข้าสู่ระบบ', 'กรุณาเข้าสู่ระบบก่อนทำรายการ', () => {
-      location.href = target;
-    });
+  const params = new URLSearchParams();
+  params.set('redirect', location.pathname.replace(/^\//, '') || 'index.html');
+  const target = `login.html?${params.toString()}`;
 
-    return false;
-  }
-  return true;
+  showModal('Login required', 'Please sign in first to continue with this step', () => {
+    location.href = target;
+  });
+
+  return false;
 }
 
-// ===== CHECKOUT PAGE =====
 function initCheckoutPage() {
   if (!requireLoginOrRedirect()) return;
 
   const listEl = $('#checkoutList');
-  const subEl  = $('#subTotal');
-  const totEl  = $('#grandTotal');
-  const form   = $('#checkoutForm');
+  const subEl = $('#subTotal');
+  const totEl = $('#grandTotal');
+  const form = $('#checkoutForm');
+  const profileStatus = $('#profileStatus');
+  const deliveryEstimate = $('#deliveryEstimate');
+  const profile = getProfile();
+  const session = getSession() || {};
 
   function renderCart() {
     const cart = getCart();
+    if (!listEl) return;
     listEl.innerHTML = '';
+
     if (!cart.length) {
-      listEl.innerHTML = '<li class="empty">ไม่มีสินค้าในตะกร้า</li>';
+      listEl.innerHTML = '<li class="empty">No items in cart. Head back to the collection and add something first.</li>';
     } else {
-      cart.forEach(item => {
+      cart.forEach((item) => {
         const li = document.createElement('li');
         li.className = 'cart-item';
         li.innerHTML = `
@@ -599,53 +760,81 @@ function initCheckoutPage() {
           <div class="cart-info">
             <div class="cart-name">${item.name}</div>
             <div class="cart-price">${toBaht(item.price)}</div>
-            <div class="cart-qty-row">ไซต์: ${item.size} | จำนวน: <strong>${item.qty}</strong></div>
+            <div class="cart-qty-row">Size: ${item.size} <strong>Qty ${item.qty}</strong></div>
           </div>
         `;
         listEl.appendChild(li);
       });
     }
-    const subtotal = getCart().reduce((s, i) => s + i.price * i.qty, 0);
-    if (subEl) subEl.textContent = toBaht(subtotal);
-    if (totEl) totEl.textContent = toBaht(subtotal);
+
+    const metrics = getCartMetrics();
+    if (subEl) subEl.textContent = toBaht(metrics.subtotal);
+    if (totEl) totEl.textContent = toBaht(metrics.subtotal);
+  }
+
+  if (profileStatus) {
+    profileStatus.textContent = profile.fullName ? 'Saved profile ready' : 'New customer';
+  }
+
+  if (deliveryEstimate) {
+    deliveryEstimate.textContent = generateDeliveryEstimate();
   }
 
   if (form) {
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
+    if (form.fullName) form.fullName.value = profile.fullName || session.username || '';
+    if (form.email) form.email.value = profile.email || session.email || '';
+    if (form.phone) form.phone.value = profile.phone || '';
+    if (form.address) form.address.value = profile.address || '';
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
       const cart = getCart();
       if (!cart.length) {
-        showModal('ไม่มีสินค้าในตะกร้า', 'โปรดเพิ่มสินค้าลงตะกร้าก่อนทำรายการ');
+        showModal('Cart is empty', 'Please add products before confirming payment');
         return;
       }
 
       const fd = new FormData(form);
-      const fullName = fd.get('fullName');
-      const email    = fd.get('email');
-      const phone    = fd.get('phone');
-      const address  = fd.get('address');
-      const pay      = fd.get('payMethod');
+      const shipping = {
+        fullName: String(fd.get('fullName') || '').trim(),
+        email: String(fd.get('email') || '').trim(),
+        phone: String(fd.get('phone') || '').trim(),
+        address: String(fd.get('address') || '').trim()
+      };
+      const payMethod = String(fd.get('payMethod') || '');
 
-      const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-      const sess  = getSession();
+      if (!shipping.fullName || !shipping.email || !shipping.phone || !shipping.address) {
+        showModal('Missing details', 'Please complete all shipping fields before confirming payment');
+        return;
+      }
 
-      const orders = getOrders();
-      orders.push({
-        id: 'ORD-' + Date.now(),
-        items: cart,
-        total,
-        status: 'ชำระแล้ว (จำลอง)',
-        createdAt: new Date().toISOString(),
-        owner: (sess && (sess.email || sess.username)) || email,
-        shipping: { fullName, email, phone, address },
-        payMethod: pay
+      saveProfile({
+        ...getProfile(),
+        ...shipping,
+        username: session.username || getProfile().username || ''
       });
-      saveOrders(orders);
 
+      const metrics = getCartMetrics();
+      const orders = getOrders();
+      const order = {
+        id: `ORD-${Date.now()}`,
+        items: cart,
+        total: metrics.subtotal,
+        status: 'Processing',
+        createdAt: new Date().toISOString(),
+        owner: session.email || session.username || shipping.email,
+        shipping,
+        payMethod,
+        itemCount: metrics.itemCount,
+        eta: generateDeliveryEstimate()
+      };
+
+      orders.push(order);
+      saveOrders(orders);
       setLS(KEY_CART, []);
       updateCartCount();
 
-      showModal('ชำระเงินสำเร็จ', 'ขอบคุณที่อุดหนุน PAPAYA Pog & Pog!', () => {
+      showModal('Payment confirmed', 'Your order was recorded successfully and is now being prepared', () => {
         location.href = 'orders.html';
       });
     });
@@ -654,58 +843,76 @@ function initCheckoutPage() {
   renderCart();
 }
 
-// ===== ORDERS PAGE =====
 function initOrdersPage() {
   if (!requireLoginOrRedirect()) return;
-  const sess = getSession();
-  const tbody = $('#ordersBody');
 
-  const orders = getOrders().filter(
-    o => o.owner === sess.email || o.owner === sess.username
-  );
+  const session = getSession();
+  const tbody = $('#ordersBody');
+  const countEl = $('#ordersCount');
+  const totalEl = $('#ordersTotalSpend');
+
+  if (!tbody) return;
+
+  const orders = getOrders()
+    .filter((order) => order.owner === session.email || order.owner === session.username)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const totalSpend = orders.reduce((sum, order) => sum + order.total, 0);
+  if (countEl) countEl.textContent = String(orders.length);
+  if (totalEl) totalEl.textContent = toBaht(totalSpend);
 
   tbody.innerHTML = '';
+
   if (!orders.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="6" class="empty">ยังไม่มีประวัติการสั่งซื้อ</td>';
+    tr.innerHTML = '<td colspan="6" class="empty">No orders yet. Your future purchases will show up here.</td>';
     tbody.appendChild(tr);
     return;
   }
 
-  orders.forEach((o, idx) => {
+  orders.forEach((order, index) => {
     const tr = document.createElement('tr');
-    const countItems = o.items.reduce((s, i) => s + i.qty, 0);
+    const itemCount = order.itemCount || order.items.reduce((sum, item) => sum + item.qty, 0);
+    const status = getOrderStatusMeta(order.status);
     tr.innerHTML = `
-      <td>${idx + 1}</td>
-      <td>${o.id}</td>
-      <td>${formatDate(o.createdAt)}</td>
-      <td>${countItems} ชิ้น</td>
-      <td>${toBaht(o.total)}</td>
-      <td>${o.status}</td>
+      <td>${index + 1}</td>
+      <td>
+        <strong>${order.id}</strong>
+        <div class="table-subline">${order.payMethod || 'Standard payment'}</div>
+      </td>
+      <td>
+        <div>${formatDate(order.createdAt)}</div>
+        <div class="table-subline">ETA ${order.eta || generateDeliveryEstimate()}</div>
+      </td>
+      <td>${itemCount} items</td>
+      <td>${toBaht(order.total)}</td>
+      <td><span class="status-pill ${status.tone}">${status.label}</span></td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-// ===== LOGIN PAGE =====
 function initLoginPage() {
   const loginForm = $('#loginForm');
   const registerForm = $('#registerForm');
-
-  const params = new URLSearchParams(location.search);
-  const redirect = params.get('redirect') || 'index.html';
+  const tabLogin = $('#tabLogin');
+  const tabRegister = $('#tabRegister');
+  const demoLogin = $('#demoLogin');
+  const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html';
 
   if (loginForm) {
-    loginForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const id  = loginForm.identifier.value.trim();
-      const pwd = loginForm.password.value.trim();
-      if (!id || !pwd) {
-        showModal('กรอกข้อมูลไม่ครบ', 'กรุณากรอกชื่อผู้ใช้ / อีเมล และรหัสผ่านให้ครบ');
+    loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const identifier = loginForm.identifier.value.trim();
+      const password = loginForm.password.value.trim();
+
+      if (!identifier || !password) {
+        showModal('Missing fields', 'Please enter both identifier and password');
         return;
       }
-      if (loginUser(id, pwd)) {
-        showModal('เข้าสู่ระบบสำเร็จ', 'ยินดีต้อนรับกลับ!', () => {
+
+      if (loginUser(identifier, password)) {
+        showModal('Welcome back', 'Login successful', () => {
           location.href = redirect;
         });
       }
@@ -713,43 +920,61 @@ function initLoginPage() {
   }
 
   if (registerForm) {
-    registerForm.addEventListener('submit', function (e) {
-      e.preventDefault();
+    registerForm.addEventListener('submit', (event) => {
+      event.preventDefault();
       const username = registerForm.username.value.trim();
-      const email    = registerForm.email.value.trim();
-      const pwd      = registerForm.password.value.trim();
-      if (!username || !email || !pwd) {
-        showModal('กรอกข้อมูลไม่ครบ', 'กรุณากรอกชื่อผู้ใช้ อีเมล และรหัสผ่านให้ครบ');
+      const email = registerForm.email.value.trim();
+      const password = registerForm.password.value.trim();
+
+      if (!username || !email || !password) {
+        showModal('Missing fields', 'Please complete username, email, and password');
         return;
       }
-      if (registerUser(username, email, pwd)) {
-        showModal('สมัครสมาชิกสำเร็จ', 'คุณได้เข้าสู่ระบบแล้ว', () => {
+
+      if (registerUser(username, email, password)) {
+        showModal('Account created', 'Your account is ready and you are now signed in', () => {
           location.href = redirect;
         });
       }
     });
   }
 
-  // Social Login
-  $$('.social-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
+  if (demoLogin) {
+    demoLogin.addEventListener('click', () => {
       const mockUser = {
-        username: "PAPAYA USER",
-        email: "social@login.mock"
+        username: 'PAPAYA DEMO',
+        email: 'demo@papaya.shop'
       };
       setLS(KEY_SESSION, mockUser);
-      const params = new URLSearchParams(location.search);
-      const redirect = params.get("redirect") || "index.html";
+      saveProfile({
+        ...getProfile(),
+        username: mockUser.username,
+        email: mockUser.email
+      });
+      showModal('Demo login ready', 'You are now inside the demo account', () => {
+        location.href = redirect;
+      });
+    });
+  }
 
-      showModal('เข้าสู่ระบบสำเร็จ', 'เข้าสู่ระบบรียบร้อย', () => {
+  $$('.social-btn').forEach((button) => {
+    if (button.id === 'demoLogin') return;
+    button.addEventListener('click', () => {
+      const mockUser = {
+        username: 'PAPAYA USER',
+        email: 'social@login.mock'
+      };
+      setLS(KEY_SESSION, mockUser);
+      saveProfile({
+        ...getProfile(),
+        username: mockUser.username,
+        email: mockUser.email
+      });
+      showModal('Social login ready', 'You are signed in with a mock social account', () => {
         location.href = redirect;
       });
     });
   });
-
-  // Tab switch
-  const tabLogin = $('#tabLogin');
-  const tabRegister = $('#tabRegister');
 
   if (tabLogin && tabRegister && loginForm && registerForm) {
     tabLogin.addEventListener('click', () => {
@@ -768,17 +993,16 @@ function initLoginPage() {
   }
 }
 
-// ===== BOOTSTRAP =====
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
   initModalEvents();
 
   const page = document.documentElement.dataset.page;
-  if (page === 'home')     initHomePage();
-  if (page === 'cart')     initCartPage();
+  if (page === 'home') initHomePage();
+  if (page === 'cart') initCartPage();
   if (page === 'checkout') initCheckoutPage();
-  if (page === 'orders')   initOrdersPage();
-  if (page === 'login')    initLoginPage();
+  if (page === 'orders') initOrdersPage();
+  if (page === 'login') initLoginPage();
 
   const yearEl = $('#year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
